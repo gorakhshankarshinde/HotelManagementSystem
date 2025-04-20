@@ -1,7 +1,12 @@
 ﻿using HotelManagement.WebApi.Data;
 using Microsoft.EntityFrameworkCore;
 
+using DotNetEnv;
+
+DotNetEnv.Env.Load(); // ✅ Load before builder is created
+
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container
 builder.Services.AddControllers();

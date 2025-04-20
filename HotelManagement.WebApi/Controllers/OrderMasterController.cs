@@ -17,10 +17,21 @@ namespace HotelManagement.WebApi.Controllers
         // Initialize the helper with the connection string
         public OrderMasterController(IConfiguration configuration)
         {
-            _configuration = configuration;
+            //_configuration = configuration;
 
             // Read the connection string from appsettings.json
-            var connectionString = _configuration.GetConnectionString("DefaultConnection");
+            //var connectionString = _configuration.GetConnectionString("DefaultConnection");
+
+            // Get env variables
+            var host = Environment.GetEnvironmentVariable("DB_HOST");
+            var port = Environment.GetEnvironmentVariable("DB_PORT");
+            var user = Environment.GetEnvironmentVariable("DB_USER");
+            var pass = Environment.GetEnvironmentVariable("DB_PASS");
+            var dbname = Environment.GetEnvironmentVariable("DB_NAME");
+
+            // Build connection string
+            var connectionString = $"Host={host};Port={port};Username={user};Password={pass};Database={dbname};SslMode=Require;Trust Server Certificate=true;";
+
 
             _dbHelper = new DatabaseHelper(connectionString);
         }

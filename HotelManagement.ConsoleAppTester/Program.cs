@@ -1,20 +1,31 @@
 ﻿namespace HotelManagement.ConsoleAppTester
 {
     using Npgsql;
+    using DotNetEnv;
+    using System;
+    using System.IO;
+
     internal class Program
     {
         static void Main(string[] args)
         {
-            var cs1 = "Host=[2a05:d016:571:a404:e7c0:a14a:61cc:50ed];Port=5432;Database=HotelManagement;Username=postgres;Password=Gorakh@2015;Ssl Mode=Require;Trust Server Certificate=true";
-            var cs2 = "Host=db.orcillprmncaasoxgqfo.supabase.co;Port=5432;Username=postgres;Password=Gorakh@2015;Database=postgres;SslMode=Require;Trust Server Certificate=true;";
+            // Load .env file from the project root
+            var envPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env");
+            Env.Load(envPath);
 
+            // Get env variables
+            var host = Environment.GetEnvironmentVariable("DB_HOST");
+            var port = Environment.GetEnvironmentVariable("DB_PORT");
+            var user = Environment.GetEnvironmentVariable("DB_USER");
+            var pass = Environment.GetEnvironmentVariable("DB_PASS");
+            var dbname = Environment.GetEnvironmentVariable("DB_NAME");
 
-            //var cs = "postgresql://postgres.orcillprmncaasoxgqfo:[Gorakh@2015]@aws-0-eu-north-1.pooler.supabase.com:6543/postgres";
-            var cs = "Host=aws-0-eu-north-1.pooler.supabase.com;Port=6543;Username=postgres.orcillprmncaasoxgqfo;Password=Gorakh@2015;Database=postgres;SslMode=Require;Trust Server Certificate=true;";
+            // Build connection string
+            var connectionString = $"Host={host};Port={port};Username={user};Password={pass};Database={dbname};SslMode=Require;Trust Server Certificate=true;";
 
             try
             {
-                using var con = new NpgsqlConnection(cs);
+                using var con = new NpgsqlConnection(connectionString);
                 con.Open();
                 Console.WriteLine("Connected to Supabase PostgreSQL Successfully...!");
             }
@@ -23,7 +34,5 @@
                 Console.WriteLine($"Connection failed: {ex.Message}");
             }
         }
-
-
     }
 }
