@@ -1,0 +1,44 @@
+﻿using HotelManagement.WebApi.Data;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Register the configuration so it can be injected
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();               // Enable Swagger middleware
+    app.UseSwaggerUI();             // Enable Swagger UI
+}
+
+// Redirect the root URL (/) to Swagger UI
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/")
+    {
+        context.Response.Redirect("/swagger", permanent: true);
+    }
+    else
+    {
+        await next.Invoke();
+    }
+});
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();  // This ensures your API routes are correctly mapped
+
+app.Run();
