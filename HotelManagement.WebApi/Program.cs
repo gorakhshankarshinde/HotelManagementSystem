@@ -42,7 +42,7 @@ app.Use(async (context, next) =>
     }
 });
 
-//app.UseHttpsRedirection();
+//app.UseHttpsRedirection(); 
 app.UseAuthorization();
 app.MapControllers();  // This ensures your API routes are correctly mapped
 
