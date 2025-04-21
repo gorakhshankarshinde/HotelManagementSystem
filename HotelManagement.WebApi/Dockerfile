@@ -1,19 +1,19 @@
-﻿# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+﻿# Use .NET 8 SDK to build the project
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-# Copy csproj and restore dependencies
+# Copy and restore
 COPY *.csproj ./
 RUN dotnet restore
 
-# Copy the rest and publish
+# Copy rest of the code and publish
 COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet publish -c Release -o /app/publish
 
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+# Use runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-COPY --from=build /app/out ./
+COPY --from=build /app/publish ./
 
-# Start the app
+# Start the application
 ENTRYPOINT ["dotnet", "HotelManagement.WebApi.dll"]
