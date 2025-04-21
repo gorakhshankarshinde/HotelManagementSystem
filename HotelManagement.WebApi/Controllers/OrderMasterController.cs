@@ -1,7 +1,9 @@
 ﻿using HotelManagement.WebApi.Data;
+using HotelManagement.WebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
+using System;
 using System.Threading.Tasks;
 
 namespace HotelManagement.WebApi.Controllers
@@ -12,26 +14,15 @@ namespace HotelManagement.WebApi.Controllers
     {
         private readonly DatabaseHelper _dbHelper;
 
-        private readonly IConfiguration _configuration;
-
-        // Initialize the helper with the connection string
         public OrderMasterController(IConfiguration configuration)
         {
-            //_configuration = configuration;
-
-            // Read the connection string from appsettings.json
-            //var connectionString = _configuration.GetConnectionString("DefaultConnection");
-
-            // Get env variables
             var host = Environment.GetEnvironmentVariable("DB_HOST");
             var port = Environment.GetEnvironmentVariable("DB_PORT");
             var user = Environment.GetEnvironmentVariable("DB_USER");
             var pass = Environment.GetEnvironmentVariable("DB_PASS");
             var dbname = Environment.GetEnvironmentVariable("DB_NAME");
 
-            // Build connection string
             var connectionString = $"Host={host};Port={port};Username={user};Password={pass};Database={dbname};SslMode=Require;Trust Server Certificate=true;";
-
 
             _dbHelper = new DatabaseHelper(connectionString);
         }
@@ -40,14 +31,17 @@ namespace HotelManagement.WebApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetOrders()
         {
-            string query = "SELECT * FROM public.\"Tbl_OrderMaster\"";  // Query to get all orders
+            string query = "SELECT * FROM public.\"VW_OrderDetails\"";  // <-- Now querying the VIEW
 
-            var orders = await _dbHelper.ExecuteQueryAsync<OrderMaster>(query, reader =>
+
+
+            var orders = await _dbHelper.ExecuteQueryAsync<OrderDetails>(query, reader =>
             {
-                return new OrderMaster
+                return new OrderDetails
                 {
                     OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
-                    MenuItemId = reader.GetInt32(reader.GetOrdinal("MenuItemId")),
+                    CustomerName = reader.GetString(reader.GetOrdinal("CustomerName")),
+                    CustomerEmail = reader.IsDBNull(reader.GetOrdinal("CustomerEmail")) ? null : reader.GetString(reader.GetOrdinal("CustomerEmail")),
                     CustomerMobile = reader.GetInt64(reader.GetOrdinal("CustomerMobile")),
                     ItemQuantity = reader.GetInt32(reader.GetOrdinal("ItemQuantity")),
                     TotalPrice = reader.GetDouble(reader.GetOrdinal("TotalPrice")),
@@ -56,51 +50,23 @@ namespace HotelManagement.WebApi.Controllers
                     CreatedOn = reader.GetDateTime(reader.GetOrdinal("CreatedOn")),
                     UpdatedById = reader.IsDBNull(reader.GetOrdinal("UpdatedById")) ? (int?)null : reader.GetInt32(reader.GetOrdinal("UpdatedById")),
                     UpdatedOn = reader.IsDBNull(reader.GetOrdinal("UpdatedOn")) ? (DateTime?)null : reader.GetDateTime(reader.GetOrdinal("UpdatedOn")),
-                    Active = reader.GetBoolean(reader.GetOrdinal("Active"))
+                    OrderActive = reader.GetBoolean(reader.GetOrdinal("OrderActive")),
+
+                    MenuItemId = reader.GetInt32(reader.GetOrdinal("MenuItemId")),
+                    MenuItemName = reader.GetString(reader.GetOrdinal("MenuItemName")),
+                    MenuItemPrice = reader.GetDouble(reader.GetOrdinal("MenuItemPrice")),
+                    MenuItemActive = reader.GetBoolean(reader.GetOrdinal("MenuItemActive")),
+
+                    MenuItemTypeId = reader.GetInt32(reader.GetOrdinal("MenuItemTypeId")),
+                    MenuItemType = reader.GetString(reader.GetOrdinal("MenuItemType")),
+                    MenuItemTypeActive = reader.GetBoolean(reader.GetOrdinal("MenuItemTypeActive"))
                 };
             });
 
             return Ok(orders);
         }
 
-        // Example for INSERT operation
-        [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] OrderMaster order)
-        {
-            string query = "INSERT INTO public.\"Tbl_OrderMaster\" (\"MenuItemId\", \"CustomerMobile\", \"ItemQuantity\", \"TotalPrice\", \"PurchaseDate\", \"CreatedById\", \"CreatedOn\", \"Active\") " +
-                           "VALUES (@MenuItemId, @CustomerMobile, @ItemQuantity, @TotalPrice, @PurchaseDate, @CreatedById, @CreatedOn, @Active)";
-
-            var command = new NpgsqlCommand(query);
-            command.Parameters.AddWithValue("@MenuItemId", order.MenuItemId);
-            command.Parameters.AddWithValue("@CustomerMobile", order.CustomerMobile);
-            command.Parameters.AddWithValue("@ItemQuantity", order.ItemQuantity);
-            command.Parameters.AddWithValue("@TotalPrice", order.TotalPrice);
-            command.Parameters.AddWithValue("@PurchaseDate", order.PurchaseDate);
-            command.Parameters.AddWithValue("@CreatedById", order.CreatedById);
-            command.Parameters.AddWithValue("@CreatedOn", DateTime.Now); // Automatically set current timestamp
-            command.Parameters.AddWithValue("@Active", order.Active);
-
-            var affectedRows = await _dbHelper.ExecuteNonQueryAsync(command.CommandText);
-
-            if (affectedRows > 0)
-                return Ok("Order created successfully.");
-            else
-                return BadRequest("Failed to create order.");
-        }
     }
 
-    public class OrderMaster
-    {
-        public int OrderId { get; set; }
-        public int MenuItemId { get; set; }
-        public long CustomerMobile { get; set; }
-        public int ItemQuantity { get; set; }
-        public double TotalPrice { get; set; }
-        public DateTime PurchaseDate { get; set; }
-        public int CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
-        public int? UpdatedById { get; set; }
-        public DateTime? UpdatedOn { get; set; }
-        public bool Active { get; set; }
-    }
+    
 }
