@@ -29,6 +29,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();             // Enable Swagger UI
 }
 
+
+// Enable Swagger UI in all environments
+app.UseSwagger();               // Enable Swagger middleware
+app.UseSwaggerUI();             // Enable Swagger UI
+
 // Redirect the root URL (/) to Swagger UI
 app.Use(async (context, next) =>
 {
@@ -42,12 +47,12 @@ app.Use(async (context, next) =>
     }
 });
 
-//app.UseHttpsRedirection(); 
+app.UseHttpsRedirection(); 
 app.UseAuthorization();
 app.MapControllers();  // This ensures your API routes are correctly mapped
 
-//app.Run();
+app.Run();
 
 // Ensure the app listens on the correct port defined by the environment (Render usually provides the PORT variable)
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{port}");
+//var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+//app.Run($"http://0.0.0.0:{port}");
