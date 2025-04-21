@@ -46,6 +46,16 @@
                 }
             }
         }
+
+        // Inside DatabaseHelper.cs
+        public async Task<int> ExecuteNonQueryAsync(string query, NpgsqlParameter[] parameters)
+        {
+            using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync();
+            using var cmd = new NpgsqlCommand(query, conn);
+            cmd.Parameters.AddRange(parameters);
+            return await cmd.ExecuteNonQueryAsync();
+        }
     }
 
 }

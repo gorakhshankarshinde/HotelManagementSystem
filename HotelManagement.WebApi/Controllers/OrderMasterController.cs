@@ -66,6 +66,63 @@ namespace HotelManagement.WebApi.Controllers
             return Ok(orders);
         }
 
+
+        // POST: api/OrderMaster
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder([FromBody] OrderCreateRequest request)
+        {
+            string query = @"
+                INSERT INTO public.""Tbl_OrderMaster""
+                (
+                    ""MenuItemId"",
+                    ""CustomerMobile"",
+                    ""ItemQuantity"",
+                    ""TotalPrice"",
+                    ""PurchaseDate"",
+                    ""CreatedById"",
+                    ""CreatedOn"",
+                    ""UpdatedById"",
+                    ""UpdatedOn"",
+                    ""Active"",
+                    ""CustomerName"",
+                    ""CustomerEmail""
+                )
+                VALUES
+                (
+                    @MenuItemId,
+                    @CustomerMobile,
+                    @ItemQuantity,
+                    @TotalPrice,
+                    @PurchaseDate,
+                    @CreatedById,
+                    CURRENT_TIMESTAMP,
+                    @UpdatedById,
+                    @UpdatedOn,
+                    @Active,
+                    @CustomerName,
+                    @CustomerEmail
+                );
+            ";
+
+            var parameters = new Npgsql.NpgsqlParameter[]
+            {
+                new("MenuItemId", request.MenuItemId),
+                new("CustomerMobile", request.CustomerMobile),
+                new("ItemQuantity", request.ItemQuantity),
+                new("TotalPrice", request.TotalPrice),
+                new("PurchaseDate", request.PurchaseDate),
+                new("CreatedById", request.CreatedById),
+                new("UpdatedById", (object?)request.UpdatedById ?? DBNull.Value),
+                new("UpdatedOn", (object?)request.UpdatedOn ?? DBNull.Value),
+                new("Active", request.Active),
+                new("CustomerName", request.CustomerName ?? (object)DBNull.Value),
+                new("CustomerEmail", request.CustomerEmail ?? (object)DBNull.Value)
+            };
+
+            var rowsAffected = await _dbHelper.ExecuteNonQueryAsync(query, parameters);
+            return Ok(new { Message = "Order created successfully", RowsAffected = rowsAffected });
+        }
+
     }
 
     
