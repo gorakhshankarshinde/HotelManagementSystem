@@ -1,0 +1,8 @@
+﻿services:
+  - type: web
+    name: hotelmanagement-api
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
