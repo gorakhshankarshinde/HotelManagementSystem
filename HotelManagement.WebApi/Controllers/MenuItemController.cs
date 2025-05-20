@@ -1,61 +1,54 @@
 ﻿using HotelManagement.WebApi.Data;
+using HotelManagement.WebApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Threading.Tasks;
 
 namespace HotelManagement.WebApi.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class MenuItemController : ControllerBase
     {
-        private readonly DatabaseHelper _dbHelper;
-
-        public MenuItemController(IConfiguration configuration)
-        {
-            var host = Environment.GetEnvironmentVariable("DB_HOST");
-            var port = Environment.GetEnvironmentVariable("DB_PORT");
-            var user = Environment.GetEnvironmentVariable("DB_USER");
-            var pass = Environment.GetEnvironmentVariable("DB_PASS");
-            var dbname = Environment.GetEnvironmentVariable("DB_NAME");
-
-            var connectionString = $"Host={host};Port={port};Username={user};Password={pass};Database={dbname};SslMode=Require;Trust Server Certificate=true;";
-            _dbHelper = new DatabaseHelper(connectionString);
-        }
-
-        // GET: api/MenuItem
         [HttpGet]
-        public async Task<IActionResult> GetMenuItems()
+        public IActionResult GetAll()
         {
-            string query = "SELECT * FROM public.\"VW_MenuItemsWithType\"";
-
-            var items = await _dbHelper.ExecuteQueryAsync<MenuItemWithType>(query, reader =>
-            {
-                return new MenuItemWithType
-                {
-                    MenuItemId = reader.GetInt32(reader.GetOrdinal("MenuItemId")),
-                    MenuItemName = reader.GetString(reader.GetOrdinal("MenuItemName")),
-                    MenuItemTypeId = reader.GetInt32(reader.GetOrdinal("MenuItemTypeId")),
-                    MenuItemType = reader.GetString(reader.GetOrdinal("MenuItemType")),
-                    Price = reader.GetDouble(reader.GetOrdinal("Price")),
-                    MenuItemActive = reader.GetBoolean(reader.GetOrdinal("MenuItemActive")),
-                    MenuItemTypeActive = reader.GetBoolean(reader.GetOrdinal("MenuItemTypeActive"))
-                };
-            });
-
+            var items = CsvMenuItemService.ReadMenuItems();
             return Ok(items);
         }
-    }
 
-    public class MenuItemWithType
-    {
-        public int MenuItemId { get; set; }
-        public string MenuItemName { get; set; }
-        public int MenuItemTypeId { get; set; }
-        public string MenuItemType { get; set; }
-        public double Price { get; set; }
-        public bool MenuItemActive { get; set; }
-        public bool MenuItemTypeActive { get; set; }
+        [HttpPost]
+        public IActionResult AddMenuItem([FromBody] MenuItem item)
+        {
+            var items = CsvMenuItemService.ReadMenuItems();
+            item.MenuItemId = items.Count > 0 ? items.Max(i => i.MenuItemId) + 1 : 1;
+
+            CsvMenuItemService.WriteMenuItem(item);
+            return CreatedAtAction(nameof(GetAll), new { id = item.MenuItemId }, item);
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult UpdateMenuItem(int id, [FromBody] MenuItem updatedItem)
+        {
+            var items = CsvMenuItemService.ReadMenuItems();
+            var existing = items.FirstOrDefault(i => i.MenuItemId == id);
+
+            if (existing == null)
+                return NotFound($"Menu item with ID {id} not found.");
+
+            updatedItem.MenuItemId = id;
+            CsvMenuItemService.UpdateMenuItem(updatedItem);
+            return Ok(updatedItem);
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult DeleteMenuItem(int id)
+        {
+            var items = CsvMenuItemService.ReadMenuItems();
+            if (!items.Any(i => i.MenuItemId == id))
+                return NotFound($"Menu item with ID {id} not found.");
+
+            CsvMenuItemService.DeleteMenuItem(id);
+            return NoContent();
+        }
     }
 }
+
