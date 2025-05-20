@@ -7,9 +7,15 @@ namespace HotelManagement.WebApi.Data
     public static class CsvMenuItemService
     {
 
-        private static readonly string FilePath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "MenuItems.csv");
+        //private static readonly string FilePath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "MenuItems.csv");
         //private static readonly string FilePath = "Data/MenuItems.csv";
 
+        private static readonly string FilePath = Path.Combine(
+                                                               AppContext.BaseDirectory,
+                                                               "wwwroot",
+                                                               "AppData",
+                                                               "MenuItems.csv"
+                                                           );
         public static List<MenuItem> ReadMenuItems()
         {
             var menuItems = new List<MenuItem>();

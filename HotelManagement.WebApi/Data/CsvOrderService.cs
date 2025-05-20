@@ -6,10 +6,14 @@
     public static class CsvOrderService
     {
 
-        private static readonly string csvPath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "orders.csv");
-
-
+        //private static readonly string csvPath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "orders.csv");
         //private static readonly string csvPath = "AppData/orders.csv";
+        private static readonly string FilePath = Path.Combine(
+                                                              AppContext.BaseDirectory,
+                                                              "wwwroot",
+                                                              "AppData",
+                                                              "orders.csv"
+                                                          );
 
         public static List<OrderMaster> ReadOrders()
         {
