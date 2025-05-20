@@ -8,7 +8,7 @@
 
         //private static readonly string csvPath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "orders.csv");
         //private static readonly string csvPath = "AppData/orders.csv";
-        private static readonly string FilePath = Path.Combine(
+        private static readonly string csvPath = Path.Combine(
                                                               AppContext.BaseDirectory,
                                                               "wwwroot",
                                                               "AppData",
