@@ -1,32 +1,56 @@
 ﻿namespace HotelManagement.WebApi.Data
 {
     using HotelManagement.WebApi.Models;
+    using System.Globalization;
     using System.Text;
 
     public static class CsvOrderService
     {
+        // Writable path for Render's /tmp
+        private static readonly string RuntimeCsvPath = "/tmp/orders.csv";
 
-        //private static readonly string csvPath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "orders.csv");
-        //private static readonly string csvPath = "AppData/orders.csv";
-        
+        // Read-only source in published output
+        private static readonly string SourceCsvPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "App_Data",
+            "orders.csv"
+        );
 
-        //private static readonly string csvPath = Path.Combine(
-        //                                                       AppContext.BaseDirectory,
-        //                                                       "App_Data",
-        //                                                       "orders.csv"
-        //                                                      );
+        // Copy CSV to /tmp at startup
+        static CsvOrderService()
+        {
+            try
+            {
+                if (!File.Exists(RuntimeCsvPath))
+                {
+                    Directory.CreateDirectory("/tmp");
 
-        private static readonly string csvPath = Path.Combine(AppContext.BaseDirectory, "App_Data", "orders.csv");
-
+                    if (File.Exists(SourceCsvPath))
+                    {
+                        File.Copy(SourceCsvPath, RuntimeCsvPath);
+                    }
+                    else
+                    {
+                        // Create new file with header if missing
+                        File.WriteAllText(RuntimeCsvPath,
+                            "OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active\n");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Csv Init Error] {ex.Message}");
+            }
+        }
 
         public static List<OrderMaster> ReadOrders()
         {
             var orders = new List<OrderMaster>();
 
-            if (!File.Exists(csvPath))
+            if (!File.Exists(RuntimeCsvPath))
                 return orders;
 
-            var lines = File.ReadAllLines(csvPath).Skip(1); // Skip header
+            var lines = File.ReadAllLines(RuntimeCsvPath).Skip(1); // Skip header
 
             foreach (var line in lines)
             {
@@ -55,15 +79,14 @@
 
         public static void WriteOrder(OrderMaster order)
         {
-            bool fileExists = File.Exists(csvPath);
+            bool fileExists = File.Exists(RuntimeCsvPath);
 
             var csvLine = $"{order.OrderId},{order.MenuItemId},{order.CustomerName},{order.CustomerEmail},{order.CustomerMobile},{order.ItemQuantity},{order.TotalPrice},{order.PurchaseDate},{order.CreatedById},{order.CreatedOn},{order.UpdatedById},{order.UpdatedOn},{order.Active}";
 
-            using (var writer = new StreamWriter(csvPath, append: true))
+            using (var writer = new StreamWriter(RuntimeCsvPath, append: true))
             {
                 if (!fileExists)
                 {
-                    // Write header
                     writer.WriteLine("OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active");
                 }
 
@@ -73,7 +96,7 @@
 
         public static void WriteAllOrders(List<OrderMaster> orders)
         {
-            using (var writer = new StreamWriter(csvPath, false))
+            using (var writer = new StreamWriter(RuntimeCsvPath, false))
             {
                 writer.WriteLine("OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active");
 
@@ -104,6 +127,4 @@
             WriteAllOrders(updatedList);
         }
     }
-
-
 }

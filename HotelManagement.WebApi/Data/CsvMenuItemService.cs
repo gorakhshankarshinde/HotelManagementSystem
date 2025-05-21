@@ -6,25 +6,50 @@ namespace HotelManagement.WebApi.Data
 {
     public static class CsvMenuItemService
     {
+        // Path to writable runtime CSV
+        private static readonly string RuntimeCsvPath = "/tmp/MenuItems.csv";
 
-        //private static readonly string FilePath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "MenuItems.csv");
-        //private static readonly string FilePath = "Data/MenuItems.csv";
+        // Path to read-only default CSV in published output
+        private static readonly string SourceCsvPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "App_Data",
+            "MenuItems.csv"
+        );
 
-        //private static readonly string FilePath = Path.Combine(
-        //                                                        AppContext.BaseDirectory,
-        //                                                        "App_Data",
-        //                                                        "MenuItems.csv"
-        //                                                       );
+        // Ensure the CSV exists in /tmp on startup
+        static CsvMenuItemService()
+        {
+            try
+            {
+                if (!File.Exists(RuntimeCsvPath))
+                {
+                    Directory.CreateDirectory("/tmp");
 
-        private static readonly string FilePath = Path.Combine(AppContext.BaseDirectory, "App_Data", "MenuItems.csv");
+                    if (File.Exists(SourceCsvPath))
+                    {
+                        File.Copy(SourceCsvPath, RuntimeCsvPath);
+                    }
+                    else
+                    {
+                        // Create new CSV with header if default is missing
+                        File.WriteAllText(RuntimeCsvPath, "MenuItemId,MenuItemName,MenuItemType,Price\n");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Csv Init Error] {ex.Message}");
+            }
+        }
+
         public static List<MenuItem> ReadMenuItems()
         {
             var menuItems = new List<MenuItem>();
 
-            if (!File.Exists(FilePath))
+            if (!File.Exists(RuntimeCsvPath))
                 return menuItems;
 
-            var lines = File.ReadAllLines(FilePath).Skip(1); // skip header
+            var lines = File.ReadAllLines(RuntimeCsvPath).Skip(1); // skip header
 
             foreach (var line in lines)
             {
@@ -46,8 +71,8 @@ namespace HotelManagement.WebApi.Data
 
         public static void WriteMenuItem(MenuItem item)
         {
-            bool fileExists = File.Exists(FilePath);
-            using (var writer = new StreamWriter(FilePath, append: true))
+            bool fileExists = File.Exists(RuntimeCsvPath);
+            using (var writer = new StreamWriter(RuntimeCsvPath, append: true))
             {
                 if (!fileExists)
                 {
@@ -80,7 +105,7 @@ namespace HotelManagement.WebApi.Data
 
         private static void OverwriteCsv(List<MenuItem> items)
         {
-            using (var writer = new StreamWriter(FilePath, false, Encoding.UTF8))
+            using (var writer = new StreamWriter(RuntimeCsvPath, false, Encoding.UTF8))
             {
                 writer.WriteLine("MenuItemId,MenuItemName,MenuItemType,Price");
                 foreach (var item in items)
