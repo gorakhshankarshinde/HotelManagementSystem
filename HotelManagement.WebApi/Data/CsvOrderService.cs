@@ -8,12 +8,13 @@
 
         //private static readonly string csvPath = Path.Combine(Directory.GetCurrentDirectory(), "AppData", "orders.csv");
         //private static readonly string csvPath = "AppData/orders.csv";
+        
+
         private static readonly string csvPath = Path.Combine(
-                                                              AppContext.BaseDirectory,
-                                                              "wwwroot",
-                                                              "AppData",
-                                                              "orders.csv"
-                                                          );
+                                                               AppContext.BaseDirectory,
+                                                               "App_Data",
+                                                               "orders.csv"
+                                                              );
 
         public static List<OrderMaster> ReadOrders()
         {
