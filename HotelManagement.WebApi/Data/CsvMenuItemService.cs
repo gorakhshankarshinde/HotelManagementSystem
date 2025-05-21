@@ -16,7 +16,7 @@ namespace HotelManagement.WebApi.Data
         //                                                        "MenuItems.csv"
         //                                                       );
 
-        private static readonly string FilePath = Path.Combine(AppContext.BaseDirectory, "AppData", "MenuItems.csv");
+        private static readonly string FilePath = Path.Combine(AppContext.BaseDirectory, "App_Data", "MenuItems.csv");
         public static List<MenuItem> ReadMenuItems()
         {
             var menuItems = new List<MenuItem>();
