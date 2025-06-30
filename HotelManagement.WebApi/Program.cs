@@ -7,7 +7,6 @@ DotNetEnv.Env.Load(); // ✅ Load before builder is created
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -16,9 +15,21 @@ builder.Services.AddSwaggerGen();
 // Register the configuration so it can be injected
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
-
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          policy.WithOrigins("https://gorakhshankarshinde.github.io")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                      });
+});
 
 var app = builder.Build();
 
@@ -28,7 +39,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();               // Enable Swagger middleware
     app.UseSwaggerUI();             // Enable Swagger UI
 }
-
 
 // Enable Swagger UI in all environments
 app.UseSwagger();               // Enable Swagger middleware
@@ -47,9 +57,13 @@ app.Use(async (context, next) =>
     }
 });
 
-app.UseHttpsRedirection(); 
+app.UseHttpsRedirection();
+
+// Enable CORS policy here:
+app.UseCors(MyAllowSpecificOrigins);
+
 app.UseAuthorization();
-app.MapControllers();  // This ensures your API routes are correctly mapped
+app.MapControllers();
 
 //app.Run();
 
