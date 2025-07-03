@@ -1,9 +1,11 @@
-﻿using HotelManagement.WebApi.Data;
+﻿using DotNetEnv;
+using HotelManagement.WebApi;
+using HotelManagement.WebApi.Data;
+using HotelManagement.WebApi.Models; // for CsvSettings
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
-using DotNetEnv;
-
-DotNetEnv.Env.Load(); // ✅ Load before builder is created
+DotNetEnv.Env.Load(); // Load environment variables from .env if present
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,39 +14,67 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register the configuration so it can be injected
+// Register IConfiguration
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
+// Setup PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+// Bind CsvSettings from appsettings.json
+var csvSettings = builder.Configuration.GetSection("CsvSettings").Get<CsvSettings>();
 
+// Register CsvMenuItemService
+builder.Services.AddSingleton<IMenuItemService>(sp =>
+{
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+    string menuCsvPath = csvSettings.RunAsLocally
+        ? Path.Combine(env.WebRootPath, csvSettings.LocalMenuItemCsvPath)
+        : csvSettings.ProdMenuItemCsvPath;
+
+    return new CsvMenuItemService(menuCsvPath);
+});
+
+// Register CsvOrderService
+builder.Services.AddSingleton<IOrderService>(sp =>
+{
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+    string orderCsvPath = csvSettings.RunAsLocally
+        ? Path.Combine(env.WebRootPath, csvSettings.LocalOrderCsvPath)
+        : csvSettings.ProdOrderCsvPath;
+
+    return new CsvOrderService(orderCsvPath);
+});
+
+
+
+
+// CORS setup
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-                          policy.WithOrigins("https://gorakhshankarshinde.github.io")
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                      });
+        policy =>
+        {
+            policy.WithOrigins("https://gorakhshankarshinde.github.io")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Swagger setup
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();               // Enable Swagger middleware
-    app.UseSwaggerUI();             // Enable Swagger UI
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-// Enable Swagger UI in all environments
-app.UseSwagger();               // Enable Swagger middleware
-app.UseSwaggerUI();             // Enable Swagger UI
+app.UseSwagger();       // Enable Swagger in all environments
+app.UseSwaggerUI();
 
-// Redirect the root URL (/) to Swagger UI
+// Redirect "/" to "/swagger"
 app.Use(async (context, next) =>
 {
     if (context.Request.Path == "/")
@@ -58,15 +88,18 @@ app.Use(async (context, next) =>
 });
 
 app.UseHttpsRedirection();
-
-// Enable CORS policy here:
 app.UseCors(MyAllowSpecificOrigins);
-
 app.UseAuthorization();
 app.MapControllers();
 
-//app.Run();
+// ✅ Render deployment support — bind to PORT environment variable
+var port = Environment.GetEnvironmentVariable("PORT");
 
-// Ensure the app listens on the correct port defined by the environment (Render usually provides the PORT variable)
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{port}");
+if (!string.IsNullOrEmpty(port))
+{
+    app.Run($"http://0.0.0.0:{port}");
+}
+else
+{
+    app.Run(); // Local development
+}

@@ -1,40 +1,28 @@
-﻿namespace HotelManagement.WebApi.Data
+﻿// File: Services/CsvOrderService.cs
+using HotelManagement.WebApi.Models;
+using System.Globalization;
+using System.Text;
+
+namespace HotelManagement.WebApi.Data
 {
-    using HotelManagement.WebApi.Models;
-    using System.Globalization;
-    using System.Text;
-
-    public static class CsvOrderService
+    public class CsvOrderService : IOrderService
     {
-        // Writable path for Render's /tmp
-        private static readonly string RuntimeCsvPath = "/tmp/orders.csv";
+        private readonly string _csvPath;
 
-        // Read-only source in published output
-        private static readonly string SourceCsvPath = Path.Combine(
-            AppContext.BaseDirectory,
-            "App_Data",
-            "orders.csv"
-        );
-
-        // Copy CSV to /tmp at startup
-        static CsvOrderService()
+        public CsvOrderService(string csvPath)
         {
+            _csvPath = csvPath;
+
             try
             {
-                if (!File.Exists(RuntimeCsvPath))
+                if (!File.Exists(_csvPath))
                 {
-                    Directory.CreateDirectory("/tmp");
+                    var directory = Path.GetDirectoryName(_csvPath);
+                    if (!string.IsNullOrWhiteSpace(directory))
+                        Directory.CreateDirectory(directory);
 
-                    if (File.Exists(SourceCsvPath))
-                    {
-                        File.Copy(SourceCsvPath, RuntimeCsvPath);
-                    }
-                    else
-                    {
-                        // Create new file with header if missing
-                        File.WriteAllText(RuntimeCsvPath,
-                            "OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active\n");
-                    }
+                    File.WriteAllText(_csvPath,
+                        "OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active\n");
                 }
             }
             catch (Exception ex)
@@ -43,18 +31,20 @@
             }
         }
 
-        public static List<OrderMaster> ReadOrders()
+        public List<OrderMaster> ReadOrders()
         {
             var orders = new List<OrderMaster>();
 
-            if (!File.Exists(RuntimeCsvPath))
+            if (!File.Exists(_csvPath))
                 return orders;
 
-            var lines = File.ReadAllLines(RuntimeCsvPath).Skip(1); // Skip header
+            var lines = File.ReadAllLines(_csvPath).Skip(1); // Skip header
 
             foreach (var line in lines)
             {
                 var values = line.Split(',');
+
+                if (values.Length < 13) continue;
 
                 orders.Add(new OrderMaster
                 {
@@ -62,14 +52,14 @@
                     MenuItemId = int.Parse(values[1]),
                     CustomerName = values[2],
                     CustomerEmail = values[3],
-                    CustomerMobile = decimal.Parse(values[4]),
-                    ItemQuantity = decimal.Parse(values[5]),
-                    TotalPrice = double.Parse(values[6]),
-                    PurchaseDate = DateTime.Parse(values[7]),
+                    CustomerMobile = decimal.Parse(values[4], CultureInfo.InvariantCulture),
+                    ItemQuantity = decimal.Parse(values[5], CultureInfo.InvariantCulture),
+                    TotalPrice = double.Parse(values[6], CultureInfo.InvariantCulture),
+                    PurchaseDate = DateTime.Parse(values[7], CultureInfo.InvariantCulture),
                     CreatedById = int.Parse(values[8]),
-                    CreatedOn = DateTime.Parse(values[9]),
+                    CreatedOn = DateTime.Parse(values[9], CultureInfo.InvariantCulture),
                     UpdatedById = int.Parse(values[10]),
-                    UpdatedOn = string.IsNullOrEmpty(values[11]) ? (DateTime?)null : DateTime.Parse(values[11]),
+                    UpdatedOn = string.IsNullOrEmpty(values[11]) ? (DateTime?)null : DateTime.Parse(values[11], CultureInfo.InvariantCulture),
                     Active = bool.Parse(values[12])
                 });
             }
@@ -77,26 +67,26 @@
             return orders;
         }
 
-        public static void WriteOrder(OrderMaster order)
+        public void WriteOrder(OrderMaster order)
         {
-            bool fileExists = File.Exists(RuntimeCsvPath);
+            bool fileExists = File.Exists(_csvPath);
 
             var csvLine = $"{order.OrderId},{order.MenuItemId},{order.CustomerName},{order.CustomerEmail},{order.CustomerMobile},{order.ItemQuantity},{order.TotalPrice},{order.PurchaseDate},{order.CreatedById},{order.CreatedOn},{order.UpdatedById},{order.UpdatedOn},{order.Active}";
 
-            using (var writer = new StreamWriter(RuntimeCsvPath, append: true))
+            using (var writer = new StreamWriter(_csvPath, append: true))
             {
                 if (!fileExists)
                 {
                     writer.WriteLine("OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active");
                 }
 
-                writer.WriteLine(csvLine);
+                writer.WriteLine(csvLine); // ✅ Ensure each order is on a new line
             }
         }
 
-        public static void WriteAllOrders(List<OrderMaster> orders)
+        public void WriteAllOrders(List<OrderMaster> orders)
         {
-            using (var writer = new StreamWriter(RuntimeCsvPath, false))
+            using (var writer = new StreamWriter(_csvPath, false, Encoding.UTF8))
             {
                 writer.WriteLine("OrderId,MenuItemId,CustomerName,CustomerEmail,CustomerMobile,ItemQuantity,TotalPrice,PurchaseDate,CreatedById,CreatedOn,UpdatedById,UpdatedOn,Active");
 
@@ -108,7 +98,7 @@
             }
         }
 
-        public static void UpdateOrder(OrderMaster updatedOrder)
+        public void UpdateOrder(OrderMaster updatedOrder)
         {
             var orders = ReadOrders();
             var index = orders.FindIndex(o => o.OrderId == updatedOrder.OrderId);
@@ -120,7 +110,7 @@
             }
         }
 
-        public static void DeleteOrder(int orderId)
+        public void DeleteOrder(int orderId)
         {
             var orders = ReadOrders();
             var updatedList = orders.Where(o => o.OrderId != orderId).ToList();

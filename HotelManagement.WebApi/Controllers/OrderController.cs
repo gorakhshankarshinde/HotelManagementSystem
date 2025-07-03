@@ -1,6 +1,5 @@
 ﻿using HotelManagement.WebApi.Data;
 using HotelManagement.WebApi.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HotelManagement.WebApi.Controllers
@@ -9,56 +8,60 @@ namespace HotelManagement.WebApi.Controllers
     [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
+        private readonly IOrderService _orderService;
+
+        public OrderController(IOrderService orderService)
+        {
+            _orderService = orderService;
+        }
+
         [HttpGet]
         public IActionResult GetAll()
         {
-            var orders = CsvOrderService.ReadOrders();
+            var orders = _orderService.ReadOrders();
             return Ok(orders);
         }
 
         [HttpPost]
         public IActionResult AddOrder([FromBody] OrderMaster order)
         {
-            var existingOrders = CsvOrderService.ReadOrders();
+            var existingOrders = _orderService.ReadOrders();
             order.OrderId = existingOrders.Count > 0 ? existingOrders.Max(o => o.OrderId) + 1 : 1;
             order.CreatedOn = DateTime.UtcNow;
 
-            CsvOrderService.WriteOrder(order);
+            _orderService.WriteOrder(order);
             return CreatedAtAction(nameof(GetAll), new { id = order.OrderId }, order);
         }
 
         [HttpPut("{id}")]
         public IActionResult UpdateOrder(int id, [FromBody] OrderMaster updatedOrder)
         {
-            var orders = CsvOrderService.ReadOrders();
+            var orders = _orderService.ReadOrders();
             var existingOrder = orders.FirstOrDefault(o => o.OrderId == id);
 
             if (existingOrder == null)
                 return NotFound($"Order with ID {id} not found.");
 
-            // Update fields (you could also just replace the whole object if needed)
             updatedOrder.OrderId = id;
-            updatedOrder.CreatedOn = existingOrder.CreatedOn; // preserve created timestamp
+            updatedOrder.CreatedOn = existingOrder.CreatedOn;
             updatedOrder.CreatedById = existingOrder.CreatedById;
             updatedOrder.UpdatedOn = DateTime.UtcNow;
 
-            CsvOrderService.UpdateOrder(updatedOrder);
+            _orderService.UpdateOrder(updatedOrder);
             return Ok(updatedOrder);
         }
 
         [HttpDelete("{id}")]
         public IActionResult DeleteOrder(int id)
         {
-            var orders = CsvOrderService.ReadOrders();
+            var orders = _orderService.ReadOrders();
             var order = orders.FirstOrDefault(o => o.OrderId == id);
 
             if (order == null)
                 return NotFound($"Order with ID {id} not found.");
 
-            CsvOrderService.DeleteOrder(id);
+            _orderService.DeleteOrder(id);
             return NoContent();
         }
-
     }
-
 }
