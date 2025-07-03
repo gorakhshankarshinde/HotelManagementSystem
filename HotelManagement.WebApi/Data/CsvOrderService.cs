@@ -12,7 +12,12 @@ namespace HotelManagement.WebApi.Data
         public CsvOrderService(string csvPath)
         {
             _csvPath = csvPath;
+            EnsureCsvExists();
+        }
+              
 
+        private void EnsureCsvExists()
+        {
             try
             {
                 if (!File.Exists(_csvPath))
@@ -27,9 +32,11 @@ namespace HotelManagement.WebApi.Data
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Csv Init Error] {ex.Message}");
+                Console.WriteLine($"[Csv Init Error] Path: {_csvPath}, Error: {ex.Message}");
+                throw; // Consider rethrowing or logging via a logger if possible
             }
         }
+
 
         public List<OrderMaster> ReadOrders()
         {
